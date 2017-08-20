@@ -1,11 +1,20 @@
 <template>
   <svg ref="svg">
-    <g ref="wrapper" :transform="transform">
-      <g class="links">
-        <path v-for="d in treeLinks" :key="d.id" :d="diagonal(d.source, d.target)" pointer-events="none"></path>
-      </g>
-      <g class="nodes">
-        <circle v-for="d in treeNodes" :key="d.id" :cx="d.y" :cy="d.x" @contextmenu.prevent="handleNodeRightClick(d, $event)"></circle>
+    <g :transform="`translate(${this.padding[3]}, ${this.padding[0] + this.h / 2})`">
+      <g ref="wrapper" :transform="transform">
+        <g class="tree-links">
+          <path class="tree-link" v-for="d in treeLinks" v-show="!onDragDescendants.find(e => e === d.target)" :key="d.id" :d="diagonal(d.source, d.target)" pointer-events="none"></path>
+        </g>
+        <g class="tree-nodes">
+          <g class="tree-node" v-for="d in treeNodes" v-show="!onDragDescendants.find(e => e === d)" :key="d.id" :transform="`translate(${d.y},${d.x})`">
+            <slot node="d"></slot>
+            <circle class="tree-shadow-node" :r="nodeSize[0]" v-if="onDragNode" @mouseover="handleDragInTo(d, $event)" @mouseout="handleDragOut(d, $event)"></circle>
+          </g>
+          <path class="tree-shadow-link" v-if="dragTarget" :d="diagonal(dragTarget, {x: dragY, y: dragX})"></path>
+          <g class="tree-draging-node" v-if="onDragNode" :transform="`translate(${dragX}, ${dragY})`" pointer-events="none">
+            <slot name="dragingNode"></slot>
+          </g>
+        </g>
       </g>
     </g>
   </svg>
@@ -22,7 +31,16 @@ const diagonal = (s, d) => {
 export default {
 
   props: {
-    nodes: Object
+    nodes: Object,
+    separation: Number,
+    nodeSize: {
+      type: Array,
+      default: [10, 100]
+    },
+    padding: {
+      type: Array,
+      default: () => [20, 20, 20, 20]
+    }
   },
 
   data() {
@@ -30,59 +48,115 @@ export default {
       diagonal,
       w: 400,
       h: 400,
+      zoom: d3.zoom().on('zoom', this.handleZoom),
+      drag: d3.drag().on('start', this.handleDragStart).on('drag', this.handleDrag).on('end', this.handleDragEnd),
+      wrapper: null,
       transform: '',
-      treeLinks: [],
-      treeNodes: []
+      onDragNode: null,
+      onDragDescendants: [],
+      dragTarget: null,
+      dragX: 0,
+      dragY: 0,
+      currentScale: 1
+    }
+  },
+
+  computed: {
+    tree: function () {
+      return d3.tree().nodeSize(this.nodeSize)
+    },
+    rootNode: function () {
+      if (this.nodes) {
+        let copy = JSON.parse(JSON.stringify(this.nodes))
+        return this.tree(d3.hierarchy(copy))
+      }
+      return null
+    },
+    treeNodes: function () {
+      if (this.rootNode) {
+        return this.rootNode.descendants()
+      }
+      return []
+    },
+    treeLinks: function () {
+      if (this.rootNode) {
+        return this.rootNode.links()
+      }
+      return []
     }
   },
 
   watch: {
     nodes: (val) => {
-      this.generate(val)
+      this.initDrag()
     }
   },
 
   methods: {
-    generate(nodes) {
-      const nodesCopy = JSON.parse(JSON.stringify(nodes))
-      const rootNode = d3.hierarchy(nodesCopy)
-      const treeNodes = []
-      let index = 0
-      d3.tree().size([this.w, this.h])(rootNode)
-      rootNode.eachBefore(d => { d.id = ++index; treeNodes.push(d) })
-      this.treeLinks = rootNode.links()
-      this.treeNodes = treeNodes
+    initDrag() {
+      const treeNodes = this.wrapper.selectAll('.tree-node').data(this.treeNodes)
+      treeNodes.on('click', this.handleClick)
+      this.drag(treeNodes)
+    },
+    handleClick() {
+      console.log('click')
+    },
+    handleDragStart(d, i) {
+      this.dragY = +d3.event.x
+      this.dragX = +d3.event.y
+      this.onDragNode = d
+      this.onDragDescendants = d.descendants()
+    },
+    handleDrag() {
+      this.dragX = d3.event.dx + this.dragX
+      this.dragY = d3.event.dy + this.dragY
+    },
+    handleDragEnd() {
+      if (this.dragTarget) {
+        this.$emit('drag', this.onDragNode, this.dragTarget)
+        this.dragTarget = null
+      }
+      this.onDragNode = null
+      this.onDragDescendants = []
+    },
+    handleDragInTo(node) {
+      this.dragTarget = node
+    },
+    handleDragOut(node) {
+      this.dragTarget = null
     },
     handleZoom() {
       this.transform = d3.event.transform
-    },
-    handleNodeRightClick(node, e) {
-      const bound = this.$refs['svg'].getBoundingClientRect()
-      const position = [e.clientX - bound.left, e.clientY - bound.top]
-      this.$emit('node-right-click', node, position, e)
+      this.currentScale = d3.event.transform.k
     }
   },
 
   mounted() {
-    const zoom = d3.zoom().on('zoom', this.handleZoom)
-    this.w = this.$refs['svg'].clientWidth
-    this.h = this.$refs['svg'].clientHeight
-    this.generate(this.nodes)
-    zoom(d3.select(this.$el))
+    this.w = this.$refs['svg'].clientWidth - this.padding[1] - this.padding[3]
+    this.h = this.$refs['svg'].clientHeight - this.padding[0] - this.padding[2]
+    this.wrapper = d3.select(this.$el)
+    this.zoom(this.wrapper)
+    this.initDrag()
+  },
+
+  updated() {
   }
 }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
- <style scoped>
-.links path {
-  stroke: #ccc;
-  stroke-width: 1px;
+<style lang="less">
+.tree-link {
   fill: none;
+  stroke: #CCC;
 }
 
-.nodes circle {
-  r: 5px;
-  fill: grey;
+.tree-shadow-node {
+  fill: rgba(0, 0, 0, 0.1);
+}
+
+.tree-shadow-link {
+  fill: none;
+  stroke: #AAA;
+  stroke-dasharray: 3;
 }
 </style>

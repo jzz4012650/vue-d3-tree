@@ -1,6 +1,11 @@
 <template>
   <div id="app">
-    <tree-diagram style="display: block; width: 800px; height: 600px;" :nodes="data" />
+    <tree-diagram ref="tree" :nodes="data" :node-size="[30, 100]" :padding="[0, 20, 0, 20]" style="display: block; width: 800px; height: 600px;">
+      <template scope="scope">
+        <circle r="5" fill="red" @click.stop="handleNodeClick(scope.node, $event)" @contextmenu.prevent="handleNodeRightClick(scope.node, $event)"></circle>
+      </template>
+      <circle slot="dragingNode" r="5" fill="black"></circle>
+    </tree-diagram>
   </div>
 </template>
 
@@ -14,15 +19,28 @@ export default {
     TreeDiagram
   },
 
-  data: function () {
+  data() {
     return {
       data
+    }
+  },
+
+  methods: {
+    handleNodeClick(node, e) {
+      const bound = this.$refs['tree'].$el.getBoundingClientRect()
+      const position = [e.clientX - bound.left, e.clientY - bound.top]
+      console.log('node-click', position)
+    },
+    handleNodeRightClick(node, e) {
+      const bound = this.$refs['tree'].$el.getBoundingClientRect()
+      const position = [e.clientX - bound.left, e.clientY - bound.top]
+      console.log('node-right-click', position)
     }
   }
 }
 </script>
 
-<style>
+ <style lang="less">
 #app {
   font-family: 'Avenir', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -30,5 +48,8 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin-top: 60px;
+  svg {
+    background: #f3f3f3;
+  }
 }
 </style>
