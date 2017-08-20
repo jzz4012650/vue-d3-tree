@@ -5,7 +5,7 @@
         <path v-for="d in treeLinks" :key="d.id" :d="diagonal(d.source, d.target)" pointer-events="none"></path>
       </g>
       <g class="nodes">
-        <circle v-for="d in treeNodes" :key="d.id" :cx="d.y" :cy="d.x"></circle>
+        <circle v-for="d in treeNodes" :key="d.id" :cx="d.y" :cy="d.x" @contextmenu.prevent="handleNodeRightClick(d, $event)"></circle>
       </g>
     </g>
   </svg>
@@ -32,8 +32,7 @@ export default {
       h: 400,
       transform: '',
       treeLinks: [],
-      treeNodes: [],
-      msg: 'Welcome to Your Vue.js App'
+      treeNodes: []
     }
   },
 
@@ -56,6 +55,11 @@ export default {
     },
     handleZoom() {
       this.transform = d3.event.transform
+    },
+    handleNodeRightClick(node, e) {
+      const bound = this.$refs['svg'].getBoundingClientRect()
+      const position = [e.clientX - bound.left, e.clientY - bound.top]
+      this.$emit('node-right-click', node, position, e)
     }
   },
 
@@ -65,7 +69,6 @@ export default {
     this.h = this.$refs['svg'].clientHeight
     this.generate(this.nodes)
     zoom(d3.select(this.$el))
-    console.log(this.treeNodes)
   }
 }
 </script>

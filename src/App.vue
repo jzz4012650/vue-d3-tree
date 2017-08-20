@@ -1,17 +1,17 @@
 <template>
   <div id="app">
-    <hello style="display: block; width: 800px; height: 600px;" :nodes="data"></hello>
+    <tree-diagram style="display: block; width: 800px; height: 600px;" :nodes="data" />
   </div>
 </template>
 
 <script>
 import data from './assets/test.json'
-import Hello from './components/Hello'
+import TreeDiagram from './components/TreeDiagram'
 
 export default {
 
   components: {
-    Hello
+    TreeDiagram
   },
 
   data: function () {
