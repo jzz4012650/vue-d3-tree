@@ -7,8 +7,8 @@
         </g>
         <g class="tree-nodes">
           <g class="tree-node" v-for="d in treeNodes" v-show="!onDragDescendants.find(e => e === d)" :key="d.id" :transform="`translate(${d.y},${d.x})`">
-            <slot node="d"></slot>
-            <circle class="tree-shadow-node" :r="nodeSize[0]" v-if="onDragNode" @mouseover="handleDragInTo(d, $event)" @mouseout="handleDragOut(d, $event)"></circle>
+            <slot node="d" ></slot>
+            <circle class="tree-shadow-node" v-show="onDragNode && !onDragDescendants.find(e => e === d)" :r="nodeSize[0]" @mouseover="handleDragInTo(d, $event)" @mouseout="handleDragOut(d, $event)"></circle>
           </g>
           <path class="tree-shadow-link" v-if="dragTarget" :d="diagonal(dragTarget, {x: dragY, y: dragX})"></path>
           <g class="tree-draging-node" v-if="onDragNode" :transform="`translate(${dragX}, ${dragY})`" pointer-events="none">
@@ -62,23 +62,23 @@ export default {
   },
 
   computed: {
-    tree: function () {
+    tree: function() {
       return d3.tree().nodeSize(this.nodeSize)
     },
-    rootNode: function () {
+    rootNode: function() {
       if (this.nodes) {
         let copy = JSON.parse(JSON.stringify(this.nodes))
         return this.tree(d3.hierarchy(copy))
       }
       return null
     },
-    treeNodes: function () {
+    treeNodes: function() {
       if (this.rootNode) {
         return this.rootNode.descendants()
       }
       return []
     },
-    treeLinks: function () {
+    treeLinks: function() {
       if (this.rootNode) {
         return this.rootNode.links()
       }
@@ -95,21 +95,17 @@ export default {
   methods: {
     initDrag() {
       const treeNodes = this.wrapper.selectAll('.tree-node').data(this.treeNodes)
-      treeNodes.on('click', this.handleClick)
       this.drag(treeNodes)
     },
-    handleClick() {
-      console.log('click')
-    },
-    handleDragStart(d, i) {
+    handleDragStart(d) {
       this.dragY = +d3.event.x
       this.dragX = +d3.event.y
-      this.onDragNode = d
-      this.onDragDescendants = d.descendants()
     },
-    handleDrag() {
+    handleDrag(d) {
       this.dragX = d3.event.dx + this.dragX
       this.dragY = d3.event.dy + this.dragY
+      this.onDragNode = d
+      this.onDragDescendants = d.descendants()
     },
     handleDragEnd() {
       if (this.dragTarget) {

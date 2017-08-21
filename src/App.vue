@@ -2,7 +2,7 @@
   <div id="app">
     <tree-diagram ref="tree" :nodes="data" :node-size="[30, 100]" :padding="[0, 20, 0, 20]" style="display: block; width: 800px; height: 600px;">
       <template scope="scope">
-        <circle r="5" fill="red" @click.stop="handleNodeClick(scope.node, $event)" @contextmenu.prevent="handleNodeRightClick(scope.node, $event)"></circle>
+        <circle r="5" fill="red" @click="handleNodeClick(scope.node, $event)" @contextmenu.prevent="handleNodeRightClick(scope.node, $event)"></circle>
       </template>
       <circle slot="dragingNode" r="5" fill="black"></circle>
     </tree-diagram>
