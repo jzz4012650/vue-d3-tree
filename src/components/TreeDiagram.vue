@@ -7,7 +7,7 @@
         </g>
         <g class="tree-nodes">
           <g class="tree-node" v-for="d in treeNodes" v-show="!onDragDescendants.find(e => e === d)" :key="d.id" :transform="`translate(${d.y},${d.x})`">
-            <slot node="d" ></slot>
+            <slot node="d"></slot>
             <circle class="tree-shadow-node" v-show="onDragNode && !onDragDescendants.find(e => e === d)" :r="nodeSize[0]" @mouseover="handleDragInTo(d, $event)" @mouseout="handleDragOut(d, $event)"></circle>
           </g>
           <path class="tree-shadow-link" v-if="dragTarget" :d="diagonal(dragTarget, {x: dragY, y: dragX})"></path>
@@ -31,7 +31,7 @@ const diagonal = (s, d) => {
 export default {
 
   props: {
-    nodes: Object,
+    nodes: Array,
     separation: Number,
     nodeSize: {
       type: Array,
@@ -66,9 +66,10 @@ export default {
       return d3.tree().nodeSize(this.nodeSize)
     },
     rootNode: function() {
-      if (this.nodes) {
+      if (Array.isArray(this.nodes)) {
         let copy = JSON.parse(JSON.stringify(this.nodes))
-        return this.tree(d3.hierarchy(copy))
+        let root = d3.stratify().id(d => d.id).parentId(d => d.pid)(copy)
+        return this.tree(d3.hierarchy(root))
       }
       return null
     },
@@ -87,12 +88,22 @@ export default {
   },
 
   watch: {
-    nodes: (val) => {
-      this.initDrag()
+    nodes: {
+      handler: function(val) {
+        this.$nextTick(this.initDrag)
+      },
+      deep: true
     }
   },
 
   methods: {
+    update() {
+      let copy = JSON.parse(JSON.stringify(this.nodes))
+      this.tree = d3.tree().nodeSize(this.nodeSize)
+      this.rootNode = this.nodes ? this.tree(d3.hierarchy(copy)) : null
+      this.treeNodes = this.rootNode ? this.rootNode.descendants() : []
+      this.treeLinks = this.rootNode ? this.rootNode.links() : []
+    },
     initDrag() {
       const treeNodes = this.wrapper.selectAll('.tree-node').data(this.treeNodes)
       this.drag(treeNodes)
@@ -132,7 +143,7 @@ export default {
     this.h = this.$refs['svg'].clientHeight - this.padding[0] - this.padding[2]
     this.wrapper = d3.select(this.$el)
     this.zoom(this.wrapper)
-    this.initDrag()
+    this.$nextTick(this.initDrag)
   },
 
   updated() {
