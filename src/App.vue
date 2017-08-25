@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <tree-diagram ref="tree" :nodes="data" :node-size="[30, 100]" :padding="[0, 20, 0, 20]" @drag="handleNodeDrag" style="display: block; width: 800px; height: 600px;">
+    <tree-diagram ref="tree" :nodes="data" node-id="id" node-pid="pid" :node-size="[30, 100]" :padding="[0, 20, 0, 20]" @drag="handleNodeDrag" style="display: block; width: 800px; height: 600px;">
       <template scope="scope">
         <circle r="5" fill="red" @click="handleNodeClick(scope.node, $event)" @contextmenu.prevent="handleNodeRightClick(scope.node, $event)"></circle>
       </template>
@@ -38,12 +38,13 @@ export default {
       console.log('node-right-click', position)
     },
     handleNodeDrag(source, target) {
+      console.log(source, target)
       let _s, _t
       if (source.parent === target) {
         return
       }
-      _s = this.data.find(d => d.id.toString() === source.data.id)
-      _t = this.data.find(d => d.id.toString() === target.data.id)
+      _s = this.data.find(d => d.id === source.data.id)
+      _t = this.data.find(d => d.id === target.data.id)
       _s.pid = _t.id
     }
   }

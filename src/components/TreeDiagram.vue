@@ -32,6 +32,14 @@ export default {
 
   props: {
     nodes: Array,
+    nodeId: {
+      type: [String, Function],
+      default: d => d.id
+    },
+    nodePid: {
+      type: [String, Function],
+      default: d => d.pid
+    },
     separation: Number,
     nodeSize: {
       type: Array,
@@ -62,14 +70,24 @@ export default {
   },
 
   computed: {
+    nodeIdGetter: function() {
+      return typeof this.nodeId === 'function'
+        ? this.nodeId
+        : d => d[this.nodeId]
+    },
+    nodePidGetter: function() {
+      return typeof this.nodePid === 'function'
+        ? this.nodePid
+        : d => d[this.nodePid]
+    },
     tree: function() {
       return d3.tree().nodeSize(this.nodeSize)
     },
     rootNode: function() {
       if (Array.isArray(this.nodes)) {
         let copy = JSON.parse(JSON.stringify(this.nodes))
-        let root = d3.stratify().id(d => d.id).parentId(d => d.pid)(copy)
-        return this.tree(d3.hierarchy(root))
+        let root = d3.stratify().id(this.nodeIdGetter).parentId(this.nodePidGetter)(copy)
+        return this.tree(root)
       }
       return null
     },
